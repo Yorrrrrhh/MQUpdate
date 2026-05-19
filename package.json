@@ -1,0 +1,20 @@
+{
+  "name": "mqtt-app-notifier",
+  "version": "1.0.0",
+  "description": "MQTT push notification system with embedded broker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "aedes": "^0.51.3",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^4.22.1",
+    "jsonwebtoken": "^9.0.3",
+    "mqtt": "^5.15.1",
+    "ws": "^8.20.0"
+  }
+}
