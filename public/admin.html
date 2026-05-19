@@ -138,7 +138,7 @@
             <button class="btn-send" onclick="submitDocReqUpdate()">Update Status</button>
             <button class="btn-cancel" onclick="closeDocReqModal()">Cancel</button>
         </div>
-        <p id="drModalStatus" class="status-msg"></p>
+        <p id="drModalMsg" class="status-msg"></p>
     </div>
 </div>
 
@@ -407,7 +407,7 @@ function openDocReqModal(id) {
     document.getElementById("drModalInfo").textContent = `${req.username} — ${req.docType}`;
     document.getElementById("drModalStatus").value    = req.status;
     document.getElementById("drModalNote").value      = req.adminNote || "";
-    document.getElementById("drModalStatus").textContent = "";
+    document.getElementById("drModalMsg").textContent = "";
     document.getElementById("docReqModal").style.display = "flex";
 }
 
@@ -419,7 +419,7 @@ async function submitDocReqUpdate() {
     const id        = document.getElementById("drModalId").value;
     const status    = document.getElementById("drModalStatus").value;
     const adminNote = document.getElementById("drModalNote").value.trim();
-    const statusEl  = document.getElementById("drModalStatus");
+    const msgEl     = document.getElementById("drModalMsg");
 
     try {
         const res  = await fetch(`/api/admin/doc-requests/${id}`, {
@@ -435,8 +435,8 @@ async function submitDocReqUpdate() {
             renderDocRequests();
             updatePendingBadge();
             closeDocReqModal();
-        } else { statusEl.textContent = "❌ " + data.message; statusEl.style.color = "var(--danger)"; }
-    } catch { statusEl.textContent = "❌ Network error."; statusEl.style.color = "var(--danger)"; }
+        } else { msgEl.textContent = "❌ " + data.message; msgEl.style.color = "var(--danger)"; }
+    } catch { msgEl.textContent = "❌ Network error."; msgEl.style.color = "var(--danger)"; }
 }
 </script>
 </body>
