@@ -124,7 +124,7 @@
         <p id="drModalInfo" style="font-size:13px; color:var(--muted); margin-bottom:4px;"></p>
 
         <label class="field-label">Status</label>
-        <select class="field-input" id="drModalStatus">
+        <select class="field-input" id="drModalStatusSelect">
             <option value="pending">🕐 Pending</option>
             <option value="processing">⚙️ Processing</option>
             <option value="ready">✅ Ready for Pickup</option>
@@ -403,11 +403,11 @@ function statusBadge(status) {
 function openDocReqModal(id) {
     const req = allDocRequests.find(r => r.id === id);
     if (!req) return;
-    document.getElementById("drModalId").value        = id;
+    document.getElementById("drModalId").value         = id;
     document.getElementById("drModalInfo").textContent = `${req.username} — ${req.docType}`;
-    document.getElementById("drModalStatus").value    = req.status;
-    document.getElementById("drModalNote").value      = req.adminNote || "";
-    document.getElementById("drModalMsg").textContent = "";
+    document.getElementById("drModalStatusSelect").value = req.status;
+    document.getElementById("drModalNote").value       = req.adminNote || "";
+    document.getElementById("drModalMsg").textContent  = "";
     document.getElementById("docReqModal").style.display = "flex";
 }
 
@@ -417,7 +417,7 @@ function closeDocReqModal() {
 
 async function submitDocReqUpdate() {
     const id        = document.getElementById("drModalId").value;
-    const status    = document.getElementById("drModalStatus").value;
+    const status    = document.getElementById("drModalStatusSelect").value;
     const adminNote = document.getElementById("drModalNote").value.trim();
     const msgEl     = document.getElementById("drModalMsg");
 
