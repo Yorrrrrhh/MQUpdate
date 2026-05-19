@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — NotifyMQ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-box">
+            <div class="auth-logo">📡 NotifyMQ</div>
+            <h1 class="auth-title">Welcome back</h1>
+            <p class="auth-sub">Sign in to view announcements</p>
+
+            <div class="field-group">
+                <label class="field-label" for="username">Username</label>
+                <input class="field-input" type="text" id="username" placeholder="Enter your username" autocomplete="username">
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="password">Password</label>
+                <input class="field-input" type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
+            </div>
+
+            <button class="btn-send" id="loginBtn" onclick="doLogin()">Sign In</button>
+            <p id="status" class="status-msg"></p>
+
+            <p class="auth-footer">Don't have an account? <a href="/register" class="auth-link">Register</a></p>
+            <p class="auth-footer" style="margin-top:6px"><a href="/admin" class="auth-link" style="color:var(--muted)">Admin login →</a></p>
+        </div>
+    </div>
+    <script>
+        // Redirect if already logged in
+        if (localStorage.getItem("token") && localStorage.getItem("role") === "client") {
+            window.location.href = "/dashboard";
+        }
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") doLogin();
+        });
+
+        async function doLogin() {
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value;
+            const status   = document.getElementById("status");
+            const btn      = document.getElementById("loginBtn");
+
+            if (!username || !password) {
+                status.textContent = "Please fill in all fields.";
+                status.style.color = "var(--danger)";
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "Signing in…";
+            status.textContent = "";
+
+            try {
+                const res  = await fetch("/api/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.setItem("token",    data.token);
+                    localStorage.setItem("username", data.username);
+                    localStorage.setItem("role",     "client");
+                    window.location.href = "/dashboard";
+                } else {
+                    status.textContent = "❌ " + data.message;
+                    status.style.color = "var(--danger)";
+                }
+            } catch {
+                status.textContent = "❌ Network error.";
+                status.style.color = "var(--danger)";
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Sign In";
+            }
+        }
+    </script>
+</body>
+</html>

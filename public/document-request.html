@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Request — NotifyMQ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+<div class="page">
+    <header class="topbar">
+        <span class="brand">📡 NotifyMQ</span>
+        <div class="topbar-right">
+            <span id="username-label" class="topbar-user"></span>
+            <span id="conn-status" class="badge badge--waiting">⏳ Connecting</span>
+            <a href="/dashboard" class="topbar-link">← Announcements</a>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <main class="main">
+        <h1 class="page-title">Registrar Document Request</h1>
+        <p class="page-sub">with Real time Notification</p>
+
+        <!-- Request Form -->
+        <div class="card" style="margin-bottom: 32px;">
+            <label class="field-label">Document Type</label>
+            <select class="field-input" id="docType">
+                <option value="" disabled selected>Select document type…</option>
+                <option value="Transcript of Records">Transcript of Records</option>
+                <option value="Certificate of Enrollment">Certificate of Enrollment</option>
+                <option value="Certificate of Graduation">Certificate of Graduation</option>
+                <option value="Good Moral Certificate">Good Moral Certificate</option>
+                <option value="Diploma">Diploma</option>
+                <option value="Form 137">Form 137</option>
+                <option value="Authentication">Authentication</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <label class="field-label" style="margin-top:10px;">Purpose / Additional Notes</label>
+            <textarea class="field-input field-textarea" id="docPurpose" placeholder="e.g. For employment, scholarship application…"></textarea>
+
+            <button class="btn-send" id="submitBtn" onclick="submitRequest()">
+                <span id="submit-text">Submit Request</span>
+            </button>
+            <p id="submitStatus" class="status-msg"></p>
+        </div>
+
+        <!-- My Requests -->
+        <h2 class="section-title">My Requests</h2>
+        <ul id="myRequests" class="notif-list">
+            <li class="notif-empty">No requests yet.</li>
+        </ul>
+    </main>
+</div>
+
+<script>
+const token    = localStorage.getItem("token");
+const username = localStorage.getItem("username");
+const role     = localStorage.getItem("role");
+
+if (!token || role !== "client") window.location.href = "/login";
+
+document.getElementById("username-label").textContent = username || "";
+
+function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    localStorage.removeItem("role");
+    window.location.href = "/login";
+}
+
+fetch("/api/verify", { headers: { "Authorization": "Bearer " + token } })
+    .then(r => { if (!r.ok) logout(); })
+    .catch(() => {});
+
+// ── Load my requests ──────────────────────────────────────────────────────
+async function loadMyRequests() {
+    try {
+        const res  = await fetch("/api/doc-requests/mine", { headers: { "Authorization": "Bearer " + token } });
+        if (!res.ok) { logout(); return; }
+        const data = await res.json();
+        const list = document.getElementById("myRequests");
+        list.innerHTML = "";
+        if (!data.requests.length) {
+            list.innerHTML = '<li class="notif-empty">No requests yet.</li>';
+            return;
+        }
+        data.requests.forEach(r => renderRequest(r));
+    } catch {}
+}
+
+function statusBadge(status) {
+    const map = {
+        pending:    { emoji: "🕐", cls: "req-status--pending",    label: "Pending" },
+        processing: { emoji: "⚙️", cls: "req-status--processing", label: "Processing" },
+        ready:      { emoji: "✅", cls: "req-status--ready",      label: "Ready for Pickup" },
+        rejected:   { emoji: "❌", cls: "req-status--rejected",   label: "Rejected" }
+    };
+    const s = map[status] || map.pending;
+    return `<span class="req-status ${s.cls}">${s.emoji} ${s.label}</span>`;
+}
+
+function renderRequest(req) {
+    const list = document.getElementById("myRequests");
+    const placeholder = list.querySelector(".notif-empty");
+    if (placeholder) placeholder.remove();
+
+    const existing = list.querySelector(`[data-id="${req.id}"]`);
+
+    const html = `
+        <strong>${req.docType}</strong>
+        <span class="notif-msg">${req.purpose || "—"}</span>
+        <div class="req-meta">
+            ${statusBadge(req.status)}
+            <small>${req.time}</small>
+        </div>
+        ${req.adminNote ? `<span class="admin-note">📝 ${req.adminNote}</span>` : ""}
+    `;
+
+    if (existing) {
+        existing.innerHTML = html;
+        existing.classList.add("notif-updated");
+        setTimeout(() => existing.classList.remove("notif-updated"), 1500);
+    } else {
+        const li = document.createElement("li");
+        li.setAttribute("data-id", req.id);
+        li.innerHTML = html;
+        list.prepend(li);
+    }
+}
+
+// ── Submit request ────────────────────────────────────────────────────────
+async function submitRequest() {
+    const docType = document.getElementById("docType").value;
+    const purpose = document.getElementById("docPurpose").value.trim();
+    const status  = document.getElementById("submitStatus");
+    const btn     = document.getElementById("submitBtn");
+    const btnText = document.getElementById("submit-text");
+
+    if (!docType) { status.textContent = "Please select a document type."; status.style.color = "var(--danger)"; return; }
+
+    btn.disabled = true; btnText.textContent = "Submitting…"; status.textContent = "";
+    try {
+        const res  = await fetch("/api/doc-requests", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+            body: JSON.stringify({ docType, purpose })
+        });
+        if (res.status === 401) { logout(); return; }
+        const data = await res.json();
+        if (data.success) {
+            status.textContent = "✅ Request submitted!"; status.style.color = "var(--accent)";
+            document.getElementById("docType").value    = "";
+            document.getElementById("docPurpose").value = "";
+            renderRequest(data.request);
+        } else { status.textContent = "❌ " + data.message; status.style.color = "var(--danger)"; }
+    } catch { status.textContent = "❌ Network error."; status.style.color = "var(--danger)"; }
+    finally { btn.disabled = false; btnText.textContent = "Submit Request"; }
+}
+
+// ── MQTT — listen for status updates ─────────────────────────────────────
+const DOC_TOPIC   = "notifier/doc-requests";
+const wsProtocol  = window.location.protocol === "https:" ? "wss" : "ws";
+const MQTT_BROKER = `${wsProtocol}://${window.location.host}/mqtt`;
+
+const connStatus = document.getElementById("conn-status");
+
+if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+}
+
+const client = mqtt.connect(MQTT_BROKER);
+
+client.on("connect", () => {
+    connStatus.textContent = "🟢 Connected";
+    connStatus.className   = "badge badge--ok";
+    client.subscribe(DOC_TOPIC, { qos: 1 });
+    loadMyRequests();
+});
+
+client.on("message", (topic, raw) => {
+    let data;
+    try { data = JSON.parse(raw.toString()); } catch { return; }
+    // Only show updates for this user's requests
+    if (data.username !== username) return;
+    renderRequest(data);
+    if (Notification.permission === "granted") {
+        new Notification("📄 Document Request Update", {
+            body: `Your request for "${data.docType}" is now: ${data.status}`
+        });
+    }
+});
+
+client.on("error",     () => { connStatus.textContent = "🔴 Error";         connStatus.className = "badge badge--error"; });
+client.on("reconnect", () => { connStatus.textContent = "🟡 Reconnecting…"; connStatus.className = "badge badge--warn";  });
+client.on("close",     () => { connStatus.textContent = "🔴 Disconnected";  connStatus.className = "badge badge--error"; });
+</script>
+</body>
+</html>

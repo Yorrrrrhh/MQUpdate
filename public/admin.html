@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — NotifyMQ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="auth-page">
+    <div class="auth-box">
+        <div class="auth-logo">🛡️ NotifyMQ</div>
+        <h1 class="auth-title">Admin Login</h1>
+        <p class="auth-sub">Restricted access</p>
+        <div class="field-group">
+            <label class="field-label">Username</label>
+            <input class="field-input" type="text" id="adminUser" placeholder="Admin username" autocomplete="username">
+        </div>
+        <div class="field-group">
+            <label class="field-label">Password</label>
+            <input class="field-input" type="password" id="adminPass" placeholder="Admin password" autocomplete="current-password">
+        </div>
+        <button class="btn-send" id="loginBtn" onclick="doAdminLogin()">Sign In</button>
+        <p id="loginStatus" class="status-msg"></p>
+        <p class="auth-footer"><a href="/login" class="auth-link" style="color:var(--muted)">← Client login</a></p>
+    </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel" class="page" style="display:none">
+    <header class="topbar">
+        <span class="brand">🛡️ NotifyMQ Admin</span>
+        <div class="topbar-right">
+            <span id="adminLabel" class="topbar-user"></span>
+            <button class="tab-btn tab-btn--active" id="tabAnnBtn" onclick="switchTab('announcements')">📢 Announcements</button>
+            <button class="tab-btn" id="tabDocBtn" onclick="switchTab('docrequests')">📄 Doc Requests <span id="pendingBadge" class="pending-dot" style="display:none"></span></button>
+            <button class="btn-logout" onclick="adminLogout()">Logout</button>
+        </div>
+    </header>
+
+    <!-- Announcements Tab -->
+    <main class="main admin-main" id="panelAnnouncements">
+
+        <!-- Send / Edit form -->
+        <div class="admin-form-col">
+            <h1 class="page-title" id="formTitle">Send Announcement</h1>
+            <p class="page-sub" id="formSub">Publishes to all connected dashboards instantly</p>
+
+            <div class="card">
+                <input type="hidden" id="editingId">
+                <label class="field-label">Title</label>
+                <input class="field-input" type="text" id="title" placeholder="e.g. System Maintenance">
+                <label class="field-label">Message</label>
+                <textarea class="field-input field-textarea" id="message" placeholder="Enter your announcement…"></textarea>
+                <div class="form-actions">
+                    <button class="btn-send" id="sendBtn" onclick="submitForm()">
+                        <span id="btn-text">Send Notification</span>
+                    </button>
+                    <button class="btn-cancel" id="cancelBtn" onclick="cancelEdit()" style="display:none">Cancel</button>
+                </div>
+                <p id="status" class="status-msg"></p>
+            </div>
+        </div>
+
+        <!-- Announcements list -->
+        <div class="admin-list-col">
+            <h2 class="section-title">Sent Announcements</h2>
+            <ul id="adminAnnList" class="admin-ann-list">
+                <li class="notif-empty">No announcements yet.</li>
+            </ul>
+        </div>
+
+    </main>
+</div>
+
+    </main>
+
+    <!-- Doc Requests Tab -->
+    <main class="main" id="panelDocRequests" style="display:none; max-width:900px;">
+        <h1 class="page-title">Document Requests</h1>
+        <p class="page-sub">Review and update student document request statuses</p>
+
+        <div class="docreq-filters">
+            <button class="filter-btn filter-btn--active" data-filter="all"     onclick="filterRequests('all')">All</button>
+            <button class="filter-btn" data-filter="pending"    onclick="filterRequests('pending')">🕐 Pending</button>
+            <button class="filter-btn" data-filter="processing" onclick="filterRequests('processing')">⚙️ Processing</button>
+            <button class="filter-btn" data-filter="ready"      onclick="filterRequests('ready')">✅ Ready</button>
+            <button class="filter-btn" data-filter="rejected"   onclick="filterRequests('rejected')">❌ Rejected</button>
+        </div>
+
+        <ul id="docReqList" class="docreq-list">
+            <li class="notif-empty">No document requests yet.</li>
+        </ul>
+    </main>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+        <h2 class="modal-title">Edit Announcement</h2>
+        <input type="hidden" id="modalId">
+        <label class="field-label">Title</label>
+        <input class="field-input" type="text" id="modalTitle">
+        <label class="field-label" style="margin-top:10px">Message</label>
+        <textarea class="field-input field-textarea" id="modalMessage"></textarea>
+        <div class="modal-actions">
+            <button class="btn-send" onclick="submitEdit()">Save Changes</button>
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        </div>
+        <p id="modalStatus" class="status-msg"></p>
+    </div>
+</div>
+
+<!-- Doc Request Status Modal -->
+<div id="docReqModal" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+        <h2 class="modal-title">Update Request Status</h2>
+        <input type="hidden" id="drModalId">
+        <p id="drModalInfo" style="font-size:13px; color:var(--muted); margin-bottom:4px;"></p>
+
+        <label class="field-label">Status</label>
+        <select class="field-input" id="drModalStatus">
+            <option value="pending">🕐 Pending</option>
+            <option value="processing">⚙️ Processing</option>
+            <option value="ready">✅ Ready for Pickup</option>
+            <option value="rejected">❌ Rejected</option>
+        </select>
+
+        <label class="field-label" style="margin-top:10px;">Note to Student (optional)</label>
+        <textarea class="field-input field-textarea" id="drModalNote" placeholder="e.g. Please bring your school ID when picking up…" style="height:80px;"></textarea>
+
+        <div class="modal-actions">
+            <button class="btn-send" onclick="submitDocReqUpdate()">Update Status</button>
+            <button class="btn-cancel" onclick="closeDocReqModal()">Cancel</button>
+        </div>
+        <p id="drModalStatus" class="status-msg"></p>
+    </div>
+</div>
+
+<script>
+let adminToken = localStorage.getItem("adminToken");
+let adminName  = localStorage.getItem("adminUsername");
+if (adminToken) showPanel(adminName);
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && document.getElementById("loginScreen").style.display !== "none") doAdminLogin();
+    if (e.key === "Escape") { closeModal(); closeDocReqModal(); }
+});
+
+function showPanel(username) {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("adminPanel").style.display  = "flex";
+    document.getElementById("adminLabel").textContent = username;
+    loadAdminAnnouncements();
+    loadDocRequests();
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────
+function switchTab(tab) {
+    const isAnn = tab === "announcements";
+    document.getElementById("panelAnnouncements").style.display = isAnn ? "" : "none";
+    document.getElementById("panelDocRequests").style.display   = isAnn ? "none" : "";
+    document.getElementById("tabAnnBtn").classList.toggle("tab-btn--active", isAnn);
+    document.getElementById("tabDocBtn").classList.toggle("tab-btn--active", !isAnn);
+    if (!isAnn) {
+        document.getElementById("pendingBadge").style.display = "none";
+    }
+}
+
+// ── Login / Logout ────────────────────────────────────────────────────────
+async function doAdminLogin() {
+    const username = document.getElementById("adminUser").value.trim();
+    const password = document.getElementById("adminPass").value;
+    const status   = document.getElementById("loginStatus");
+    const btn      = document.getElementById("loginBtn");
+    if (!username || !password) { status.textContent = "Please fill in all fields."; status.style.color = "var(--danger)"; return; }
+    btn.disabled = true; btn.textContent = "Signing in…";
+    try {
+        const res  = await fetch("/api/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }) });
+        const data = await res.json();
+        if (data.success) {
+            localStorage.setItem("adminToken", data.token);
+            localStorage.setItem("adminUsername", data.username);
+            adminToken = data.token; adminName = data.username;
+            showPanel(data.username);
+        } else { status.textContent = "❌ " + data.message; status.style.color = "var(--danger)"; }
+    } catch { status.textContent = "❌ Network error."; status.style.color = "var(--danger)"; }
+    finally { btn.disabled = false; btn.textContent = "Sign In"; }
+}
+
+function adminLogout() {
+    localStorage.removeItem("adminToken"); localStorage.removeItem("adminUsername");
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("adminPanel").style.display  = "none";
+    document.getElementById("adminUser").value = "";
+    document.getElementById("adminPass").value = "";
+}
+
+// ── Load announcements list ───────────────────────────────────────────────
+async function loadAdminAnnouncements() {
+    try {
+        const res  = await fetch("/api/admin/announcements", { headers: { "Authorization": "Bearer " + adminToken } });
+        if (res.status === 401) { adminLogout(); return; }
+        const data = await res.json();
+        const list = document.getElementById("adminAnnList");
+        list.innerHTML = "";
+        if (!data.announcements.length) {
+            list.innerHTML = '<li class="notif-empty">No announcements yet.</li>';
+            return;
+        }
+        data.announcements.forEach(ann => appendAdminItem(ann));
+    } catch {}
+}
+
+function appendAdminItem(ann) {
+    const list = document.getElementById("adminAnnList");
+    const placeholder = list.querySelector(".notif-empty");
+    if (placeholder) placeholder.remove();
+
+    const li = document.createElement("li");
+    li.setAttribute("data-id", ann.id);
+    li.className = "admin-ann-item";
+    li.innerHTML = `
+        <div class="ann-content">
+            <strong>${ann.title}</strong>
+            <span class="notif-msg">${ann.message}</span>
+            <small>${ann.time}${ann.edited ? ` · <span class="edited-badge">✏️ Edited · ${ann.editedAt}</span>` : ""}</small>
+        </div>
+        <div class="ann-actions">
+            <button class="btn-icon btn-edit" onclick="openModal('${ann.id}', this)" title="Edit">✏️</button>
+            <button class="btn-icon btn-delete" onclick="deleteAnn('${ann.id}', this)" title="Delete">🗑️</button>
+        </div>
+    `;
+    list.prepend(li);
+}
+
+// ── Send new announcement ─────────────────────────────────────────────────
+async function submitForm() {
+    const title   = document.getElementById("title").value.trim();
+    const message = document.getElementById("message").value.trim();
+    const status  = document.getElementById("status");
+    const btn     = document.getElementById("sendBtn");
+    const btnText = document.getElementById("btn-text");
+
+    if (!title || !message) { status.textContent = "Please fill in both fields."; status.style.color = "var(--danger)"; return; }
+
+    btn.disabled = true; btnText.textContent = "Sending…"; status.textContent = "";
+    try {
+        const res  = await fetch("/send", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + adminToken }, body: JSON.stringify({ title, message }) });
+        if (res.status === 401) { adminLogout(); return; }
+        const data = await res.json();
+        if (data.success) {
+            status.textContent = "✅ Sent!"; status.style.color = "var(--accent)";
+            document.getElementById("title").value   = "";
+            document.getElementById("message").value = "";
+            appendAdminItem(data.announcement);
+        } else { status.textContent = "❌ " + data.message; status.style.color = "var(--danger)"; }
+    } catch { status.textContent = "❌ Network error."; status.style.color = "var(--danger)"; }
+    finally { btn.disabled = false; btnText.textContent = "Send Notification"; }
+}
+
+// ── Edit modal ────────────────────────────────────────────────────────────
+function openModal(id, btn) {
+    const li = document.querySelector(`[data-id="${id}"]`);
+    const title   = li.querySelector("strong").textContent;
+    const message = li.querySelector(".notif-msg").textContent;
+    document.getElementById("modalId").value      = id;
+    document.getElementById("modalTitle").value   = title;
+    document.getElementById("modalMessage").value = message;
+    document.getElementById("modalStatus").textContent = "";
+    document.getElementById("editModal").style.display = "flex";
+}
+
+function closeModal() {
+    document.getElementById("editModal").style.display = "none";
+}
+
+async function submitEdit() {
+    const id      = document.getElementById("modalId").value;
+    const title   = document.getElementById("modalTitle").value.trim();
+    const message = document.getElementById("modalMessage").value.trim();
+    const status  = document.getElementById("modalStatus");
+
+    if (!title || !message) { status.textContent = "Please fill in both fields."; status.style.color = "var(--danger)"; return; }
+
+    try {
+        const res  = await fetch(`/api/announcement/${id}`, { method: "PUT", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + adminToken }, body: JSON.stringify({ title, message }) });
+        if (res.status === 401) { adminLogout(); return; }
+        const data = await res.json();
+        if (data.success) {
+            const li = document.querySelector(`#adminAnnList [data-id="${id}"]`);
+            if (li) {
+                li.querySelector("strong").textContent      = data.announcement.title;
+                li.querySelector(".notif-msg").textContent  = data.announcement.message;
+                li.querySelector("small").innerHTML = `${data.announcement.time} · <span class="edited-badge">✏️ Edited · ${data.announcement.editedAt}</span>`;
+            }
+            closeModal();
+        } else { status.textContent = "❌ " + data.message; status.style.color = "var(--danger)"; }
+    } catch { status.textContent = "❌ Network error."; status.style.color = "var(--danger)"; }
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────
+async function deleteAnn(id, btn) {
+    if (!confirm("Delete this announcement? It will be removed from all dashboards.")) return;
+    btn.disabled = true;
+    try {
+        const res  = await fetch(`/api/announcement/${id}`, { method: "DELETE", headers: { "Authorization": "Bearer " + adminToken } });
+        if (res.status === 401) { adminLogout(); return; }
+        const data = await res.json();
+        if (data.success) {
+            const li = document.querySelector(`#adminAnnList [data-id="${id}"]`);
+            if (li) li.remove();
+            const list = document.getElementById("adminAnnList");
+            if (!list.children.length) list.innerHTML = '<li class="notif-empty">No announcements yet.</li>';
+        }
+    } catch {}
+    finally { btn.disabled = false; }
+}
+
+// ── Document Requests ─────────────────────────────────────────────────────
+let allDocRequests = [];
+let currentFilter  = "all";
+
+async function loadDocRequests() {
+    try {
+        const res  = await fetch("/api/admin/doc-requests", { headers: { "Authorization": "Bearer " + adminToken } });
+        if (res.status === 401) { adminLogout(); return; }
+        const data = await res.json();
+        allDocRequests = data.requests || [];
+        renderDocRequests();
+        updatePendingBadge();
+    } catch {}
+}
+
+function updatePendingBadge() {
+    const count = allDocRequests.filter(r => r.status === "pending").length;
+    const badge = document.getElementById("pendingBadge");
+    badge.style.display = count > 0 ? "inline-flex" : "none";
+    badge.textContent   = count;
+}
+
+function filterRequests(filter) {
+    currentFilter = filter;
+    document.querySelectorAll(".filter-btn").forEach(b => {
+        b.classList.toggle("filter-btn--active", b.dataset.filter === filter);
+    });
+    renderDocRequests();
+}
+
+function renderDocRequests() {
+    const list    = document.getElementById("docReqList");
+    const filtered = currentFilter === "all" ? allDocRequests : allDocRequests.filter(r => r.status === currentFilter);
+    list.innerHTML = "";
+    if (!filtered.length) {
+        list.innerHTML = '<li class="notif-empty">No requests in this category.</li>';
+        return;
+    }
+    filtered.forEach(r => {
+        const li = document.createElement("li");
+        li.setAttribute("data-id", r.id);
+        li.className = "docreq-item";
+        li.innerHTML = `
+            <div class="docreq-info">
+                <strong>${r.docType}</strong>
+                <span class="notif-msg">${r.purpose || "—"}</span>
+                <div class="req-meta">
+                    <span class="req-label">👤 ${r.username}</span>
+                    <small>${r.time}</small>
+                </div>
+                ${r.adminNote ? `<span class="admin-note">📝 ${r.adminNote}</span>` : ""}
+            </div>
+            <div class="docreq-actions">
+                ${statusBadge(r.status)}
+                <button class="btn-icon btn-edit" onclick="openDocReqModal('${r.id}')" title="Update Status">✏️</button>
+            </div>
+        `;
+        list.appendChild(li);
+    });
+}
+
+function statusBadge(status) {
+    const map = {
+        pending:    { emoji: "🕐", cls: "req-status--pending",    label: "Pending" },
+        processing: { emoji: "⚙️", cls: "req-status--processing", label: "Processing" },
+        ready:      { emoji: "✅", cls: "req-status--ready",      label: "Ready" },
+        rejected:   { emoji: "❌", cls: "req-status--rejected",   label: "Rejected" }
+    };
+    const s = map[status] || map.pending;
+    return `<span class="req-status ${s.cls}">${s.emoji} ${s.label}</span>`;
+}
+
+function openDocReqModal(id) {
+    const req = allDocRequests.find(r => r.id === id);
+    if (!req) return;
+    document.getElementById("drModalId").value        = id;
+    document.getElementById("drModalInfo").textContent = `${req.username} — ${req.docType}`;
+    document.getElementById("drModalStatus").value    = req.status;
+    document.getElementById("drModalNote").value      = req.adminNote || "";
+    document.getElementById("drModalStatus").textContent = "";
+    document.getElementById("docReqModal").style.display = "flex";
+}
+
+function closeDocReqModal() {
+    document.getElementById("docReqModal").style.display = "none";
+}
+
+async function submitDocReqUpdate() {
+    const id        = document.getElementById("drModalId").value;
+    const status    = document.getElementById("drModalStatus").value;
+    const adminNote = document.getElementById("drModalNote").value.trim();
+    const statusEl  = document.getElementById("drModalStatus");
+
+    try {
+        const res  = await fetch(`/api/admin/doc-requests/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + adminToken },
+            body: JSON.stringify({ status, adminNote })
+        });
+        if (res.status === 401) { adminLogout(); return; }
+        const data = await res.json();
+        if (data.success) {
+            const idx = allDocRequests.findIndex(r => r.id === id);
+            if (idx !== -1) allDocRequests[idx] = data.request;
+            renderDocRequests();
+            updatePendingBadge();
+            closeDocReqModal();
+        } else { statusEl.textContent = "❌ " + data.message; statusEl.style.color = "var(--danger)"; }
+    } catch { statusEl.textContent = "❌ Network error."; statusEl.style.color = "var(--danger)"; }
+}
+</script>
+</body>
+</html>
