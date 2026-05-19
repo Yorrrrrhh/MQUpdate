@@ -231,6 +231,7 @@ app.post("/api/doc-requests", requireClientAuth, (req, res) => {
 
 // ── Doc Request: get mine (client) ────────────────────────────────────────
 app.get("/api/doc-requests/mine", requireClientAuth, (req, res) => {
+    docRequests = loadJSON(DOC_FILE);
     const list = Object.values(docRequests)
         .filter(r => r.username === req.user.username)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -239,7 +240,10 @@ app.get("/api/doc-requests/mine", requireClientAuth, (req, res) => {
 
 // ── Doc Request: get all (admin) ──────────────────────────────────────────
 app.get("/api/admin/doc-requests", requireAdminAuth, (req, res) => {
+    // Re-read from disk on every request so data survives server restarts
+    docRequests = loadJSON(DOC_FILE);
     const list = Object.values(docRequests).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    console.log(`📋 Admin fetched doc requests: ${list.length} total`);
     res.json({ success: true, requests: list });
 });
 
