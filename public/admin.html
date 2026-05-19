@@ -78,7 +78,10 @@
 
     <!-- Doc Requests Tab -->
     <main class="main" id="panelDocRequests" style="display:none; max-width:900px;">
-        <h1 class="page-title">Document Requests</h1>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <h1 class="page-title" style="margin-bottom:0;">Document Requests</h1>
+            <button class="btn-icon btn-edit" onclick="loadDocRequests()" title="Refresh" style="font-size:16px; padding:6px 10px;">🔄</button>
+        </div>
         <p class="page-sub">Review and update student document request statuses</p>
 
         <div class="docreq-filters">
@@ -166,6 +169,7 @@ function switchTab(tab) {
     document.getElementById("tabDocBtn").classList.toggle("tab-btn--active", !isAnn);
     if (!isAnn) {
         document.getElementById("pendingBadge").style.display = "none";
+        loadDocRequests(); // always refresh when switching to this tab
     }
 }
 
@@ -324,14 +328,19 @@ let allDocRequests = [];
 let currentFilter  = "all";
 
 async function loadDocRequests() {
+    const list = document.getElementById("docReqList");
+    list.innerHTML = '<li class="notif-empty">Loading…</li>';
     try {
         const res  = await fetch("/api/admin/doc-requests", { headers: { "Authorization": "Bearer " + adminToken } });
         if (res.status === 401) { adminLogout(); return; }
         const data = await res.json();
+        if (!data.success) throw new Error(data.message);
         allDocRequests = data.requests || [];
         renderDocRequests();
         updatePendingBadge();
-    } catch {}
+    } catch (e) {
+        list.innerHTML = `<li class="notif-empty" style="color:var(--danger)">❌ Failed to load: ${e.message}</li>`;
+    }
 }
 
 function updatePendingBadge() {
