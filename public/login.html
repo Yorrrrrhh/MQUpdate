@@ -3,17 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — NotifyMQ</title>
+    <title>Sign In — NotifyMQ</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="auth-page">
         <div class="auth-box">
-            <div class="auth-logo">📡 NotifyMQ</div>
+            <div class="auth-logo">
+                <span class="brand-dot"></span>
+                NotifyMQ
+            </div>
+
             <h1 class="auth-title">Welcome back</h1>
-            <p class="auth-sub">Sign in to view announcements</p>
+            <p class="auth-sub">Sign in to view announcements and requests</p>
+
+            <div class="auth-divider"></div>
 
             <div class="field-group">
                 <label class="field-label" for="username">Username</label>
@@ -27,12 +33,14 @@
             <button class="btn-send" id="loginBtn" onclick="doLogin()">Sign In</button>
             <p id="status" class="status-msg"></p>
 
-            <p class="auth-footer">Don't have an account? <a href="/register" class="auth-link">Register</a></p>
-            <p class="auth-footer" style="margin-top:6px"><a href="/admin" class="auth-link" style="color:var(--muted)">Admin login →</a></p>
+            <div class="auth-divider"></div>
+
+            <p class="auth-footer">No account? <a href="/register" class="auth-link">Create one</a></p>
+            <p class="auth-footer" style="margin-top:4px"><a href="/admin" class="auth-link" style="color:var(--ink-3); font-weight:400;">Admin access →</a></p>
         </div>
     </div>
+
     <script>
-        // Redirect if already logged in
         if (localStorage.getItem("token") && localStorage.getItem("role") === "client") {
             window.location.href = "/dashboard";
         }
@@ -71,11 +79,11 @@
                     localStorage.setItem("role",     "client");
                     window.location.href = "/dashboard";
                 } else {
-                    status.textContent = "❌ " + data.message;
+                    status.textContent = "✕ " + data.message;
                     status.style.color = "var(--danger)";
                 }
             } catch {
-                status.textContent = "❌ Network error.";
+                status.textContent = "✕ Network error.";
                 status.style.color = "var(--danger)";
             } finally {
                 btn.disabled = false;

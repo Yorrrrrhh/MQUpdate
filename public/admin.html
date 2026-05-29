@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin — NotifyMQ</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,9 +13,15 @@
 <!-- LOGIN SCREEN -->
 <div id="loginScreen" class="auth-page">
     <div class="auth-box">
-        <div class="auth-logo">🛡️ NotifyMQ</div>
-        <h1 class="auth-title">Admin Login</h1>
-        <p class="auth-sub">Restricted access</p>
+        <div class="auth-logo">
+            <span class="brand-dot" style="background: var(--ink-3);"></span>
+            NotifyMQ Admin
+        </div>
+        <h1 class="auth-title">Restricted access</h1>
+        <p class="auth-sub">Sign in with your administrator credentials</p>
+
+        <div class="auth-divider"></div>
+
         <div class="field-group">
             <label class="field-label">Username</label>
             <input class="field-input" type="text" id="adminUser" placeholder="Admin username" autocomplete="username">
@@ -24,20 +30,29 @@
             <label class="field-label">Password</label>
             <input class="field-input" type="password" id="adminPass" placeholder="Admin password" autocomplete="current-password">
         </div>
-        <button class="btn-send" id="loginBtn" onclick="doAdminLogin()">Sign In</button>
+
+        <button class="btn-send" id="loginBtn" onclick="doAdminLogin()" style="background: var(--ink);">Sign In</button>
         <p id="loginStatus" class="status-msg"></p>
-        <p class="auth-footer"><a href="/login" class="auth-link" style="color:var(--muted)">← Client login</a></p>
+
+        <div class="auth-divider"></div>
+        <p class="auth-footer"><a href="/login" class="auth-link" style="color:var(--ink-3); font-weight:400;">← Client login</a></p>
     </div>
 </div>
 
 <!-- ADMIN PANEL -->
 <div id="adminPanel" class="page" style="display:none">
     <header class="topbar">
-        <span class="brand">🛡️ NotifyMQ Admin</span>
+        <span class="brand">
+            <span class="brand-dot" style="background: var(--ink-3);"></span>
+            NotifyMQ Admin
+        </span>
         <div class="topbar-right">
             <span id="adminLabel" class="topbar-user"></span>
-            <button class="tab-btn tab-btn--active" id="tabAnnBtn" onclick="switchTab('announcements')">📢 Announcements</button>
-            <button class="tab-btn" id="tabDocBtn" onclick="switchTab('docrequests')">📄 Doc Requests <span id="pendingBadge" class="pending-dot" style="display:none"></span></button>
+            <button class="tab-btn tab-btn--active" id="tabAnnBtn" onclick="switchTab('announcements')">Announcements</button>
+            <button class="tab-btn" id="tabDocBtn" onclick="switchTab('docrequests')">
+                Doc Requests
+                <span id="pendingBadge" class="pending-dot" style="display:none"></span>
+            </button>
             <button class="btn-logout" onclick="adminLogout()">Logout</button>
         </div>
     </header>
@@ -45,30 +60,39 @@
     <!-- Announcements Tab -->
     <main class="main admin-main" id="panelAnnouncements">
 
-        <!-- Send / Edit form -->
         <div class="admin-form-col">
-            <h1 class="page-title" id="formTitle">Send Announcement</h1>
-            <p class="page-sub" id="formSub">Publishes to all connected dashboards instantly</p>
+            <div>
+                <h1 class="page-title" id="formTitle">Send Announcement</h1>
+                <p class="page-sub" id="formSub">Publishes to all connected dashboards instantly</p>
+            </div>
 
             <div class="card">
                 <input type="hidden" id="editingId">
-                <label class="field-label">Title</label>
-                <input class="field-input" type="text" id="title" placeholder="e.g. System Maintenance">
-                <label class="field-label">Message</label>
-                <textarea class="field-input field-textarea" id="message" placeholder="Enter your announcement…"></textarea>
+
+                <div class="field-group">
+                    <label class="field-label">Title</label>
+                    <input class="field-input" type="text" id="title" placeholder="e.g. System Maintenance">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Message</label>
+                    <textarea class="field-input field-textarea" id="message" placeholder="Enter your announcement…"></textarea>
+                </div>
+
                 <div class="form-actions">
-                    <button class="btn-send" id="sendBtn" onclick="submitForm()">
+                    <button class="btn-send" id="sendBtn" onclick="submitForm()" style="flex: 2;">
                         <span id="btn-text">Send Notification</span>
                     </button>
-                    <button class="btn-cancel" id="cancelBtn" onclick="cancelEdit()" style="display:none">Cancel</button>
+                    <button class="btn-cancel" id="cancelBtn" onclick="cancelEdit()" style="display:none; flex: 1;">Cancel</button>
                 </div>
                 <p id="status" class="status-msg"></p>
             </div>
         </div>
 
-        <!-- Announcements list -->
         <div class="admin-list-col">
-            <h2 class="section-title">Sent Announcements</h2>
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <h2 class="section-title">Sent Announcements</h2>
+                <div style="flex: 1; height: 1px; background: var(--border);"></div>
+            </div>
             <ul id="adminAnnList" class="admin-ann-list">
                 <li class="notif-empty">No announcements yet.</li>
             </ul>
@@ -78,18 +102,18 @@
 
     <!-- Doc Requests Tab -->
     <main class="main" id="panelDocRequests" style="display:none; max-width:900px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+        <div style="display:flex; align-items:center; gap: 16px; margin-bottom: 6px;">
             <h1 class="page-title" style="margin-bottom:0;">Document Requests</h1>
-            <button class="btn-icon btn-edit" onclick="loadDocRequests()" title="Refresh" style="font-size:16px; padding:6px 10px;">🔄</button>
+            <button class="btn-icon btn-edit" onclick="loadDocRequests()" title="Refresh" style="font-size:14px; padding:6px 10px; margin-top:4px;">↻</button>
         </div>
         <p class="page-sub">Review and update student document request statuses</p>
 
         <div class="docreq-filters">
-            <button class="filter-btn filter-btn--active" data-filter="all"     onclick="filterRequests('all')">All</button>
-            <button class="filter-btn" data-filter="pending"    onclick="filterRequests('pending')">🕐 Pending</button>
-            <button class="filter-btn" data-filter="processing" onclick="filterRequests('processing')">⚙️ Processing</button>
-            <button class="filter-btn" data-filter="ready"      onclick="filterRequests('ready')">✅ Ready</button>
-            <button class="filter-btn" data-filter="rejected"   onclick="filterRequests('rejected')">❌ Rejected</button>
+            <button class="filter-btn filter-btn--active" data-filter="all"        onclick="filterRequests('all')">All</button>
+            <button class="filter-btn" data-filter="pending"    onclick="filterRequests('pending')">Pending</button>
+            <button class="filter-btn" data-filter="processing" onclick="filterRequests('processing')">Processing</button>
+            <button class="filter-btn" data-filter="ready"      onclick="filterRequests('ready')">Ready</button>
+            <button class="filter-btn" data-filter="rejected"   onclick="filterRequests('rejected')">Rejected</button>
         </div>
 
         <ul id="docReqList" class="docreq-list">
@@ -99,46 +123,51 @@
 
 </div><!-- /adminPanel -->
 
-<!-- Edit Modal -->
-<div id="editModal" class="modal-overlay" style="display:none">
+<!-- Edit Announcement Modal -->
+<div id="editModal" class="modal-overlay" style="display:none" onclick="if(event.target===this) closeModal()">
     <div class="modal-box">
         <h2 class="modal-title">Edit Announcement</h2>
         <input type="hidden" id="modalId">
-        <label class="field-label">Title</label>
-        <input class="field-input" type="text" id="modalTitle">
-        <label class="field-label" style="margin-top:10px">Message</label>
-        <textarea class="field-input field-textarea" id="modalMessage"></textarea>
-        <div class="modal-actions">
-            <button class="btn-send" onclick="submitEdit()">Save Changes</button>
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <div class="field-group">
+            <label class="field-label">Title</label>
+            <input class="field-input" type="text" id="modalTitle">
+        </div>
+        <div class="field-group">
+            <label class="field-label">Message</label>
+            <textarea class="field-input field-textarea" id="modalMessage"></textarea>
         </div>
         <p id="modalStatus" class="status-msg"></p>
+        <div class="modal-actions">
+            <button class="btn-send" onclick="submitEdit()" style="flex: 2;">Save Changes</button>
+            <button class="btn-cancel" onclick="closeModal()" style="flex: 1;">Cancel</button>
+        </div>
     </div>
 </div>
 
-<!-- Doc Request Status Modal -->
-<div id="docReqModal" class="modal-overlay" style="display:none">
+<!-- Doc Request Update Modal -->
+<div id="docReqModal" class="modal-overlay" style="display:none" onclick="if(event.target===this) closeDocReqModal()">
     <div class="modal-box">
         <h2 class="modal-title">Update Request Status</h2>
         <input type="hidden" id="drModalId">
-        <p id="drModalInfo" style="font-size:13px; color:var(--muted); margin-bottom:4px;"></p>
-
-        <label class="field-label">Status</label>
-        <select class="field-input" id="drModalStatusSelect">
-            <option value="pending">🕐 Pending</option>
-            <option value="processing">⚙️ Processing</option>
-            <option value="ready">✅ Ready for Pickup</option>
-            <option value="rejected">❌ Rejected</option>
-        </select>
-
-        <label class="field-label" style="margin-top:10px;">Note to Student (optional)</label>
-        <textarea class="field-input field-textarea" id="drModalNote" placeholder="e.g. Please bring your school ID when picking up…" style="height:80px;"></textarea>
-
-        <div class="modal-actions">
-            <button class="btn-send" onclick="submitDocReqUpdate()">Update Status</button>
-            <button class="btn-cancel" onclick="closeDocReqModal()">Cancel</button>
+        <p id="drModalInfo" style="font-size: 14px; color: var(--ink-2); font-weight: 500; background: var(--surface-2); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);"></p>
+        <div class="field-group">
+            <label class="field-label">Status</label>
+            <select class="field-input" id="drModalStatusSelect">
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="ready">Ready for Pickup</option>
+                <option value="rejected">Rejected</option>
+            </select>
+        </div>
+        <div class="field-group">
+            <label class="field-label">Admin Note (optional)</label>
+            <textarea class="field-input" id="drModalNote" style="height: 80px; resize: vertical;" placeholder="e.g. Document available at window 3…"></textarea>
         </div>
         <p id="drModalMsg" class="status-msg"></p>
+        <div class="modal-actions">
+            <button class="btn-send" onclick="submitDocReqUpdate()" style="flex: 2;">Update Status</button>
+            <button class="btn-cancel" onclick="closeDocReqModal()" style="flex: 1;">Cancel</button>
+        </div>
     </div>
 </div>
 
@@ -160,7 +189,6 @@ function showPanel(username) {
     loadDocRequests();
 }
 
-// ── Tab switching ─────────────────────────────────────────────────────────
 function switchTab(tab) {
     const isAnn = tab === "announcements";
     document.getElementById("panelAnnouncements").style.display = isAnn ? "" : "none";
@@ -169,11 +197,10 @@ function switchTab(tab) {
     document.getElementById("tabDocBtn").classList.toggle("tab-btn--active", !isAnn);
     if (!isAnn) {
         document.getElementById("pendingBadge").style.display = "none";
-        loadDocRequests(); // always refresh when switching to this tab
+        loadDocRequests();
     }
 }
 
-// ── Login / Logout ────────────────────────────────────────────────────────
 async function doAdminLogin() {
     const username = document.getElementById("adminUser").value.trim();
     const password = document.getElementById("adminPass").value;
@@ -189,8 +216,8 @@ async function doAdminLogin() {
             localStorage.setItem("adminUsername", data.username);
             adminToken = data.token; adminName = data.username;
             showPanel(data.username);
-        } else { status.textContent = "❌ " + data.message; status.style.color = "var(--danger)"; }
-    } catch { status.textContent = "❌ Network error."; status.style.color = "var(--danger)"; }
+        } else { status.textContent = "✕ " + data.message; status.style.color = "var(--danger)"; }
+    } catch { status.textContent = "✕ Network error."; status.style.color = "var(--danger)"; }
     finally { btn.disabled = false; btn.textContent = "Sign In"; }
 }
 
@@ -202,7 +229,6 @@ function adminLogout() {
     document.getElementById("adminPass").value = "";
 }
 
-// ── Load announcements list ───────────────────────────────────────────────
 async function loadAdminAnnouncements() {
     try {
         const res  = await fetch("/api/admin/announcements", { headers: { "Authorization": "Bearer " + adminToken } });
@@ -230,17 +256,16 @@ function appendAdminItem(ann) {
         <div class="ann-content">
             <strong>${ann.title}</strong>
             <span class="notif-msg">${ann.message}</span>
-            <small>${ann.time}${ann.edited ? ` · <span class="edited-badge">✏️ Edited · ${ann.editedAt}</span>` : ""}</small>
+            <small>${ann.time}${ann.edited ? ` · <span class="edited-badge">Edited · ${ann.editedAt}</span>` : ""}</small>
         </div>
         <div class="ann-actions">
-            <button class="btn-icon btn-edit" onclick="openModal('${ann.id}', this)" title="Edit">✏️</button>
-            <button class="btn-icon btn-delete" onclick="deleteAnn('${ann.id}', this)" title="Delete">🗑️</button>
+            <button class="btn-icon btn-edit" onclick="openModal('${ann.id}', this)" title="Edit" aria-label="Edit">✎</button>
+            <button class="btn-icon btn-delete" onclick="deleteAnn('${ann.id}', this)" title="Delete" aria-label="Delete">✕</button>
         </div>
     `;
     list.prepend(li);
 }
 
-// ── Send new announcement ─────────────────────────────────────────────────
 async function submitForm() {
     const title   = document.getElementById("title").value.trim();
     const message = document.getElementById("message").value.trim();
@@ -256,16 +281,15 @@ async function submitForm() {
         if (res.status === 401) { adminLogout(); return; }
         const data = await res.json();
         if (data.success) {
-            status.textContent = "✅ Sent!"; status.style.color = "var(--accent)";
+            status.textContent = "✓ Sent!"; status.style.color = "var(--accent)";
             document.getElementById("title").value   = "";
             document.getElementById("message").value = "";
             appendAdminItem(data.announcement);
-        } else { status.textContent = "❌ " + data.message; status.style.color = "var(--danger)"; }
-    } catch { status.textContent = "❌ Network error."; status.style.color = "var(--danger)"; }
+        } else { status.textContent = "✕ " + data.message; status.style.color = "var(--danger)"; }
+    } catch { status.textContent = "✕ Network error."; status.style.color = "var(--danger)"; }
     finally { btn.disabled = false; btnText.textContent = "Send Notification"; }
 }
 
-// ── Edit modal ────────────────────────────────────────────────────────────
 function openModal(id, btn) {
     const li = document.querySelector(`[data-id="${id}"]`);
     const title   = li.querySelector("strong").textContent;
@@ -298,14 +322,13 @@ async function submitEdit() {
             if (li) {
                 li.querySelector("strong").textContent      = data.announcement.title;
                 li.querySelector(".notif-msg").textContent  = data.announcement.message;
-                li.querySelector("small").innerHTML = `${data.announcement.time} · <span class="edited-badge">✏️ Edited · ${data.announcement.editedAt}</span>`;
+                li.querySelector("small").innerHTML = `${data.announcement.time} · <span class="edited-badge">Edited · ${data.announcement.editedAt}</span>`;
             }
             closeModal();
-        } else { status.textContent = "❌ " + data.message; status.style.color = "var(--danger)"; }
-    } catch { status.textContent = "❌ Network error."; status.style.color = "var(--danger)"; }
+        } else { status.textContent = "✕ " + data.message; status.style.color = "var(--danger)"; }
+    } catch { status.textContent = "✕ Network error."; status.style.color = "var(--danger)"; }
 }
 
-// ── Delete ────────────────────────────────────────────────────────────────
 async function deleteAnn(id, btn) {
     if (!confirm("Delete this announcement? It will be removed from all dashboards.")) return;
     btn.disabled = true;
@@ -323,13 +346,22 @@ async function deleteAnn(id, btn) {
     finally { btn.disabled = false; }
 }
 
-// ── Document Requests ─────────────────────────────────────────────────────
+function cancelEdit() {
+    document.getElementById("editingId").value = "";
+    document.getElementById("title").value     = "";
+    document.getElementById("message").value   = "";
+    document.getElementById("formTitle").textContent = "Send Announcement";
+    document.getElementById("formSub").textContent   = "Publishes to all connected dashboards instantly";
+    document.getElementById("cancelBtn").style.display = "none";
+    document.getElementById("btn-text").textContent    = "Send Notification";
+}
+
 let allDocRequests = [];
 let currentFilter  = "all";
 
 async function loadDocRequests() {
     const list = document.getElementById("docReqList");
-    list.innerHTML = '<li class="notif-empty">Loading…</li>';
+    list.innerHTML = '<li class="notif-empty" style="font-style:normal; font-family: var(--font-mono); font-size: 13px;">Loading…</li>';
     try {
         const res  = await fetch("/api/admin/doc-requests", { headers: { "Authorization": "Bearer " + adminToken } });
         if (res.status === 401) { adminLogout(); return; }
@@ -339,7 +371,7 @@ async function loadDocRequests() {
         renderDocRequests();
         updatePendingBadge();
     } catch (e) {
-        list.innerHTML = `<li class="notif-empty" style="color:var(--danger)">❌ Failed to load: ${e.message}</li>`;
+        list.innerHTML = `<li class="notif-empty" style="color:var(--danger)">Failed to load: ${e.message}</li>`;
     }
 }
 
@@ -359,7 +391,7 @@ function filterRequests(filter) {
 }
 
 function renderDocRequests() {
-    const list    = document.getElementById("docReqList");
+    const list     = document.getElementById("docReqList");
     const filtered = currentFilter === "all" ? allDocRequests : allDocRequests.filter(r => r.status === currentFilter);
     list.innerHTML = "";
     if (!filtered.length) {
@@ -375,14 +407,14 @@ function renderDocRequests() {
                 <strong>${r.docType}</strong>
                 <span class="notif-msg">${r.purpose || "—"}</span>
                 <div class="req-meta">
-                    <span class="req-label">👤 ${r.username}</span>
-                    <small>${r.time}</small>
+                    <span class="req-label">${r.username}</span>
+                    <small style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);">${r.time}</small>
                 </div>
-                ${r.adminNote ? `<span class="admin-note">📝 ${r.adminNote}</span>` : ""}
+                ${r.adminNote ? `<span class="admin-note">${r.adminNote}</span>` : ""}
             </div>
             <div class="docreq-actions">
                 ${statusBadge(r.status)}
-                <button class="btn-icon btn-edit" onclick="openDocReqModal('${r.id}')" title="Update Status">✏️</button>
+                <button class="btn-icon btn-edit" onclick="openDocReqModal('${r.id}')" title="Update Status" style="font-size: 13px; padding: 5px 10px;">Update</button>
             </div>
         `;
         list.appendChild(li);
@@ -391,24 +423,24 @@ function renderDocRequests() {
 
 function statusBadge(status) {
     const map = {
-        pending:    { emoji: "🕐", cls: "req-status--pending",    label: "Pending" },
-        processing: { emoji: "⚙️", cls: "req-status--processing", label: "Processing" },
-        ready:      { emoji: "✅", cls: "req-status--ready",      label: "Ready" },
-        rejected:   { emoji: "❌", cls: "req-status--rejected",   label: "Rejected" }
+        pending:    { cls: "req-status--pending",    label: "Pending" },
+        processing: { cls: "req-status--processing", label: "Processing" },
+        ready:      { cls: "req-status--ready",      label: "Ready" },
+        rejected:   { cls: "req-status--rejected",   label: "Rejected" }
     };
     const s = map[status] || map.pending;
-    return `<span class="req-status ${s.cls}">${s.emoji} ${s.label}</span>`;
+    return `<span class="req-status ${s.cls}">${s.label}</span>`;
 }
 
 function openDocReqModal(id) {
     const req = allDocRequests.find(r => r.id === id);
     if (!req) return;
-    document.getElementById("drModalId").value         = id;
-    document.getElementById("drModalInfo").textContent = `${req.username} — ${req.docType}`;
-    document.getElementById("drModalStatusSelect").value = req.status;
-    document.getElementById("drModalNote").value       = req.adminNote || "";
-    document.getElementById("drModalMsg").textContent  = "";
-    document.getElementById("docReqModal").style.display = "flex";
+    document.getElementById("drModalId").value            = id;
+    document.getElementById("drModalInfo").textContent    = `${req.username} — ${req.docType}`;
+    document.getElementById("drModalStatusSelect").value  = req.status;
+    document.getElementById("drModalNote").value          = req.adminNote || "";
+    document.getElementById("drModalMsg").textContent     = "";
+    document.getElementById("docReqModal").style.display  = "flex";
 }
 
 function closeDocReqModal() {
@@ -435,8 +467,8 @@ async function submitDocReqUpdate() {
             renderDocRequests();
             updatePendingBadge();
             closeDocReqModal();
-        } else { msgEl.textContent = "❌ " + data.message; msgEl.style.color = "var(--danger)"; }
-    } catch { msgEl.textContent = "❌ Network error."; msgEl.style.color = "var(--danger)"; }
+        } else { msgEl.textContent = "✕ " + data.message; msgEl.style.color = "var(--danger)"; }
+    } catch { msgEl.textContent = "✕ Network error."; msgEl.style.color = "var(--danger)"; }
 }
 </script>
 </body>

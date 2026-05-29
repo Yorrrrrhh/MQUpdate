@@ -3,29 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard — NotifyMQ</title>
+    <title>Announcements — NotifyMQ</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 <body>
     <div class="page">
         <header class="topbar">
-            <span class="brand">📡 NotifyMQ</span>
+            <span class="brand">
+                <span class="brand-dot"></span>
+                NotifyMQ
+            </span>
             <div class="topbar-right">
                 <span id="username-label" class="topbar-user"></span>
-                <span id="conn-status" class="badge badge--waiting">⏳ Connecting</span>
-                <a href="/document-request" class="topbar-link">📄 Document Request</a>
+                <span id="conn-status" class="badge badge--waiting">Connecting</span>
+                <a href="/document-request" class="topbar-link">Document Request</a>
                 <button class="btn-logout" onclick="logout()">Logout</button>
             </div>
         </header>
 
         <main class="main">
             <h1 class="page-title">Announcements</h1>
-            <p class="page-sub">Live notifications delivery</p>
+            <p class="page-sub">Live notifications — updates appear automatically</p>
             <ul id="notifications" class="notif-list">
-                <li class="notif-empty">No announcements yet. Waiting for messages…</li>
+                <li class="notif-empty">No announcements yet — waiting for messages…</li>
             </ul>
         </main>
     </div>
