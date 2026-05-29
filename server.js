@@ -226,6 +226,9 @@ app.post("/api/doc-requests", requireClientAuth, (req, res) => {
     docRequests[dr.id] = dr;
     saveJSON(DOC_FILE, docRequests);
     console.log(`📄 Doc request: "${docType}" by ${req.user.username}`);
+    // Notify admin panel in real time
+    const payload = JSON.stringify({ ...dr, action: "new" });
+    aedes.publish({ topic: "notifier/doc-requests", payload, qos: 1, retain: false, dup: false }, () => {});
     res.json({ success: true, request: dr });
 });
 
