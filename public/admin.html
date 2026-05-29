@@ -11,7 +11,7 @@
 <body>
 
 <!-- LOGIN SCREEN -->
-<div id="loginScreen" class="auth-page" style="position:fixed;inset:0;z-index:50;width:100%;height:100%;">
+<div id="loginScreen" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:50;width:100vw;height:100vh;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:40px 20px;">
     <div class="auth-box">
         <div class="auth-logo">
             <span class="brand-dot" style="background: var(--ink-3);"></span>
@@ -182,7 +182,8 @@ document.addEventListener("keydown", (e) => {
 });
 
 function showPanel(username) {
-    document.getElementById("loginScreen").style.display = "none";
+    const ls = document.getElementById("loginScreen");
+    ls.style.cssText = "display:none;";
     document.getElementById("adminPanel").style.display  = "block";
     document.getElementById("adminLabel").textContent = username;
     loadAdminAnnouncements();
@@ -223,8 +224,9 @@ async function doAdminLogin() {
 
 function adminLogout() {
     localStorage.removeItem("adminToken"); localStorage.removeItem("adminUsername");
-    document.getElementById("adminPanel").style.display  = "none";
-    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("adminPanel").style.display = "none";
+    const ls = document.getElementById("loginScreen");
+    ls.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;z-index:50;width:100vw;height:100vh;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:40px 20px;";
     document.getElementById("adminUser").value = "";
     document.getElementById("adminPass").value = "";
 }
