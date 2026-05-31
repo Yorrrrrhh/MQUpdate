@@ -270,6 +270,27 @@ app.put("/api/admin/doc-requests/:id", async (req, res) => {
     });
 });
 
+
+// ── Cleanup route (removes corrupted/undefined entries) ───────────────────
+app.post("/api/admin/cleanup", requireAdminAuth, async (req, res) => {
+    let removed = 0;
+    for (const [key, ann] of Object.entries(announcements)) {
+        if (!ann || !ann.id || !ann.title || !ann.message ||
+            ann.title === "undefined" || ann.message === "undefined") {
+            delete announcements[key]; removed++;
+        }
+    }
+    await saveAnnouncements();
+    for (const [key, dr] of Object.entries(docRequests)) {
+        if (!dr || !dr.id || !dr.docType || !dr.username ||
+            dr.docType === "undefined" || dr.username === "undefined") {
+            delete docRequests[key]; removed++;
+        }
+    }
+    await saveDocRequests();
+    console.log(`🧹 Cleanup: removed ${removed} corrupted entries`);
+    res.json({ success: true, message: `Cleaned up ${removed} corrupted entries` });
+});
 // ── WebSocket MQTT ─────────────────────────────────────────────────────────
 const wss = new ws.WebSocketServer({
     server, path: "/mqtt",
