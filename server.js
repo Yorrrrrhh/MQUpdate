@@ -14,20 +14,17 @@ const MQTT_PORT  = process.env.MQTT_PORT  || 1883;
 const MQTT_TOPIC = "notifier/demo2026";
 const JWT_SECRET = process.env.JWT_SECRET || "superSecretKey_changeMeInProduction!";
 
-// ── MongoDB (set MONGO_URI env var on Render to enable persistent storage) ──
 const MONGO_URI  = process.env.MONGO_URI || null;
+let db = null;
 
-let db = null; // MongoDB database handle (null = use JSON fallback)
-
-// ── File-based fallback databases (used when MONGO_URI is not set) ──────────
+// ── JSON fallback files ───────────────────────────────────────────────────
 const DB_FILE   = path.join(__dirname, "clients.json");
 const ANN_FILE  = path.join(__dirname, "announcements.json");
 const DOC_FILE  = path.join(__dirname, "doc-requests.json");
 
 function loadJSON(file) {
-    try {
-        if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, "utf8"));
-    } catch (e) { console.error("⚠️  Could not read", file, e.message); }
+    try { if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, "utf8")); }
+    catch (e) { console.error("⚠️  Could not read", file, e.message); }
     return {};
 }
 function saveJSON(file, data) {
@@ -35,23 +32,25 @@ function saveJSON(file, data) {
     catch (e) { console.error("⚠️  Could not save", file, e.message); }
 }
 
-// In-memory cache (used for JSON fallback mode)
 let clients       = loadJSON(DB_FILE);
 let announcements = loadJSON(ANN_FILE);
 let docRequests   = loadJSON(DOC_FILE);
 
-// ── MongoDB helpers ───────────────────────────────────────────────────────────
-
+// ── MongoDB connection ────────────────────────────────────────────────────
 async function connectMongo() {
     if (!MONGO_URI) return false;
     try {
         const { MongoClient } = require("mongodb");
-        const client = new MongoClient(MONGO_URI);
+        const client = new MongoClient(MONGO_URI, {
+            tls: true,
+            tlsAllowInvalidCertificates: true,
+            serverSelectionTimeoutMS: 15000,
+            connectTimeoutMS: 15000,
+            socketTimeoutMS: 30000,
+        });
         await client.connect();
         db = client.db("mqnotifier");
         console.log("✅ Connected to MongoDB — data will persist across restarts");
-
-        // Migrate existing JSON data into MongoDB (runs once; skips if already there)
         await migrateJSONToMongo();
         return true;
     } catch (e) {
@@ -62,7 +61,6 @@ async function connectMongo() {
 }
 
 async function migrateJSONToMongo() {
-    // Clients
     const existingClients = await db.collection("clients").countDocuments();
     if (existingClients === 0) {
         const localClients = loadJSON(DB_FILE);
@@ -72,7 +70,6 @@ async function migrateJSONToMongo() {
             console.log(`📦 Migrated ${docs.length} client(s) from JSON to MongoDB`);
         }
     }
-    // Announcements
     const existingAnns = await db.collection("announcements").countDocuments();
     if (existingAnns === 0) {
         const localAnns = loadJSON(ANN_FILE);
@@ -82,7 +79,6 @@ async function migrateJSONToMongo() {
             console.log(`📦 Migrated ${docs.length} announcement(s) from JSON to MongoDB`);
         }
     }
-    // Doc requests
     const existingDocs = await db.collection("docRequests").countDocuments();
     if (existingDocs === 0) {
         const localDocs = loadJSON(DOC_FILE);
@@ -94,10 +90,8 @@ async function migrateJSONToMongo() {
     }
 }
 
-// ── DB abstraction layer (works with both MongoDB and JSON) ──────────────────
-
+// ── DB abstraction (MongoDB or JSON) ─────────────────────────────────────
 const DB = {
-    // ── Clients ──
     async getClient(username) {
         if (db) {
             const doc = await db.collection("clients").findOne({ _id: username });
@@ -118,13 +112,10 @@ const DB = {
         }
     },
     async clientExists(username) {
-        if (db) {
-            return !!(await db.collection("clients").findOne({ _id: username }));
-        }
+        if (db) return !!(await db.collection("clients").findOne({ _id: username }));
         return !!clients[username];
     },
 
-    // ── Announcements ──
     async getAnnouncements() {
         if (db) {
             const docs = await db.collection("announcements").find({}).toArray();
@@ -162,7 +153,6 @@ const DB = {
         }
     },
 
-    // ── Doc Requests ──
     async getDocRequests() {
         if (db) {
             const docs = await db.collection("docRequests").find({}).toArray();
@@ -177,8 +167,7 @@ const DB = {
             const { _id, ...rest } = doc;
             return { id: _id, ...rest };
         }
-        const fresh = loadJSON(DOC_FILE);
-        return fresh[id] || null;
+        return loadJSON(DOC_FILE)[id] || null;
     },
     async saveDocRequest(dr) {
         if (db) {
@@ -229,7 +218,6 @@ function requireAdminAuth(req, res, next) {
     } catch { res.status(401).json({ success: false, message: "Invalid or expired token" }); }
 }
 
-// ── Helper: publish a packet ───────────────────────────────────────────────
 function publishAnnouncement(ann, callback) {
     const payload = JSON.stringify(ann);
     aedes.publish({ topic: MQTT_TOPIC, payload, qos: 1, retain: false, dup: false }, callback);
@@ -254,7 +242,6 @@ app.post("/api/register", async (req, res) => {
         return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
     if (await DB.clientExists(username))
         return res.status(409).json({ success: false, message: "Username already taken" });
-
     const data = { passwordHash: await bcrypt.hash(password, 10), createdAt: new Date().toISOString() };
     await DB.saveClient(username, data);
     console.log(`👤 Registered: ${username}`);
@@ -297,20 +284,13 @@ app.post("/send", requireAdminAuth, async (req, res) => {
     const { title, message } = req.body;
     if (!title || !message)
         return res.status(400).json({ success: false, message: "Title and message required" });
-
     const ann = {
-        id:        randomUUID(),
-        title,
-        message,
-        time:      new Date().toLocaleString(),
+        id: randomUUID(), title, message,
+        time: new Date().toLocaleString(),
         createdAt: new Date().toISOString(),
-        edited:    false,
-        editedAt:  null,
-        deleted:   false
+        edited: false, editedAt: null, deleted: false
     };
-
     await DB.saveAnnouncement(ann);
-
     publishAnnouncement({ ...ann, action: "create" }, (err) => {
         if (err) return res.status(500).json({ success: false, message: "Publish failed" });
         console.log(`📢 Sent: "${ann.title}"`);
@@ -322,14 +302,10 @@ app.put("/api/announcement/:id", requireAdminAuth, async (req, res) => {
     const { id } = req.params;
     const { title, message } = req.body;
     const existing = await DB.getAnnouncement(id);
-    if (!existing)
-        return res.status(404).json({ success: false, message: "Announcement not found" });
-    if (!title || !message)
-        return res.status(400).json({ success: false, message: "Title and message required" });
-
+    if (!existing) return res.status(404).json({ success: false, message: "Announcement not found" });
+    if (!title || !message) return res.status(400).json({ success: false, message: "Title and message required" });
     const updated = { ...existing, title, message, edited: true, editedAt: new Date().toLocaleString() };
     await DB.saveAnnouncement(updated);
-
     publishAnnouncement({ ...updated, action: "edit" }, (err) => {
         if (err) return res.status(500).json({ success: false, message: "Publish failed" });
         console.log(`✏️  Edited: "${title}"`);
@@ -340,12 +316,9 @@ app.put("/api/announcement/:id", requireAdminAuth, async (req, res) => {
 app.delete("/api/announcement/:id", requireAdminAuth, async (req, res) => {
     const { id } = req.params;
     const existing = await DB.getAnnouncement(id);
-    if (!existing)
-        return res.status(404).json({ success: false, message: "Announcement not found" });
-
+    if (!existing) return res.status(404).json({ success: false, message: "Announcement not found" });
     const title = existing.title;
     await DB.deleteAnnouncement(id);
-
     publishAnnouncement({ id, action: "delete" }, (err) => {
         if (err) return res.status(500).json({ success: false, message: "Publish failed" });
         console.log(`🗑️  Deleted: "${title}"`);
@@ -358,32 +331,22 @@ app.get("/document-request", (_, res) => res.sendFile(path.join(__dirname, "publ
 
 app.post("/api/doc-requests", requireClientAuth, async (req, res) => {
     const { docType, purpose } = req.body;
-    if (!docType)
-        return res.status(400).json({ success: false, message: "Document type is required" });
-
+    if (!docType) return res.status(400).json({ success: false, message: "Document type is required" });
     const dr = {
-        id:        randomUUID(),
-        username:  req.user.username,
-        docType,
-        purpose:   purpose || "",
-        status:    "pending",
-        adminNote: "",
-        time:      new Date().toLocaleString(),
-        createdAt: new Date().toISOString()
+        id: randomUUID(), username: req.user.username, docType,
+        purpose: purpose || "", status: "pending", adminNote: "",
+        time: new Date().toLocaleString(), createdAt: new Date().toISOString()
     };
-
     await DB.saveDocRequest(dr);
     console.log(`📄 Doc request: "${docType}" by ${req.user.username}`);
-    const payload = JSON.stringify({ ...dr, action: "new" });
-    aedes.publish({ topic: "notifier/doc-requests", payload, qos: 1, retain: false, dup: false }, () => {});
+    aedes.publish({ topic: "notifier/doc-requests", payload: JSON.stringify({ ...dr, action: "new" }), qos: 1, retain: false, dup: false }, () => {});
     res.json({ success: true, request: dr });
 });
 
 app.get("/api/doc-requests/mine", requireClientAuth, async (req, res) => {
     const all = await DB.getDocRequests();
-    const list = all
-        .filter(r => r.username === req.user.username)
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const list = all.filter(r => r.username === req.user.username)
+                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.json({ success: true, requests: list });
 });
 
@@ -397,18 +360,12 @@ app.put("/api/admin/doc-requests/:id", requireAdminAuth, async (req, res) => {
     const { id } = req.params;
     const { status, adminNote } = req.body;
     const existing = await DB.getDocRequest(id);
-    if (!existing)
-        return res.status(404).json({ success: false, message: "Request not found" });
-
+    if (!existing) return res.status(404).json({ success: false, message: "Request not found" });
     const validStatuses = ["pending", "processing", "ready", "rejected"];
-    if (!validStatuses.includes(status))
-        return res.status(400).json({ success: false, message: "Invalid status" });
-
+    if (!validStatuses.includes(status)) return res.status(400).json({ success: false, message: "Invalid status" });
     const updated = { ...existing, status, adminNote: adminNote || "" };
     await DB.saveDocRequest(updated);
-
-    const payload = JSON.stringify({ ...updated, action: "update" });
-    aedes.publish({ topic: "notifier/doc-requests", payload, qos: 1, retain: false, dup: false }, (err) => {
+    aedes.publish({ topic: "notifier/doc-requests", payload: JSON.stringify({ ...updated, action: "update" }), qos: 1, retain: false, dup: false }, (err) => {
         if (err) return res.status(500).json({ success: false, message: "Publish failed" });
         console.log(`📄 Updated request ${id} → ${status}`);
         res.json({ success: true, request: updated });
@@ -424,11 +381,8 @@ const wss = new ws.WebSocketServer({
         return false;
     }
 });
-wss.on("connection", (socket) => {
-    aedes.handle(ws.createWebSocketStream(socket));
-});
+wss.on("connection", (socket) => { aedes.handle(ws.createWebSocketStream(socket)); });
 
-// TCP MQTT — only used when running locally (Render only exposes HTTP/WS)
 const tcpServer = net.createServer(aedes.handle.bind(aedes));
 tcpServer.listen(MQTT_PORT, "0.0.0.0", () => console.log(`🔌 MQTT TCP on port ${MQTT_PORT}`));
 tcpServer.on("error", (err) => console.warn(`⚠️  MQTT TCP unavailable (${err.message}) — WebSocket MQTT still works.`));
@@ -438,7 +392,7 @@ aedes.on("clientDisconnect", (c) => console.log(`📴 Disconnected: ${c.id}`));
 
 // ── Start ──────────────────────────────────────────────────────────────────
 (async () => {
-    await connectMongo(); // Try MongoDB; falls back to JSON silently
+    await connectMongo();
 
     if (!db) {
         console.log(`📂 Using JSON files — set MONGO_URI env var for persistent storage`);
