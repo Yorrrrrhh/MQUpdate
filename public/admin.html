@@ -173,8 +173,10 @@
 </div>
 
 <script>
-let adminToken = localStorage.getItem("adminToken");
-let adminName  = localStorage.getItem("adminUsername");
+let adminToken     = localStorage.getItem("adminToken");
+let adminName      = localStorage.getItem("adminUsername");
+let allDocRequests = [];
+let currentFilter  = "all";
 if (adminToken) showPanel(adminName);
 
 document.addEventListener("keydown", (e) => {
@@ -360,9 +362,6 @@ function cancelEdit() {
     document.getElementById("cancelBtn").style.display = "none";
     document.getElementById("btn-text").textContent    = "Send Notification";
 }
-
-let allDocRequests = [];
-let currentFilter  = "all";
 
 async function loadDocRequests() {
     const list = document.getElementById("docReqList");
