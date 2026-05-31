@@ -97,6 +97,10 @@
             <ul id="adminAnnList" class="admin-ann-list">
                 <li class="notif-empty">No announcements yet.</li>
             </ul>
+            <div style="margin-top: 12px;">
+                <button onclick="runCleanup()" style="font-size:12px; padding:6px 12px; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--ink-3); cursor:pointer;">🧹 Remove corrupted entries</button>
+                <span id="cleanupMsg" style="font-size:12px; margin-left:8px; color:var(--ink-3);"></span>
+            </div>
         </div>
 
     </main>
@@ -519,6 +523,18 @@ function connectAdminMQTT() {
 
 function disconnectAdminMQTT() {
     if (mqttClient) { mqttClient.end(true); mqttClient = null; }
+}
+
+async function runCleanup() {
+    const msg = document.getElementById("cleanupMsg");
+    msg.textContent = "Cleaning…";
+    try {
+        const res = await fetch("/api/admin/cleanup", { method: "POST", headers: { "Authorization": "Bearer " + adminToken } });
+        const data = await res.json();
+        msg.textContent = data.message;
+        loadAdminAnnouncements();
+        loadDocRequests();
+    } catch { msg.textContent = "Failed."; }
 }
 </script>
 </body>
